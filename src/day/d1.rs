@@ -1,8 +1,8 @@
-use crate::Day;
+use crate::solution::DaySolution;
 
 pub struct D1;
 
-impl Day for D1 {
+impl DaySolution for D1 {
     type P1 = p1::P1;
     type P2 = p2::P2;
 
@@ -16,29 +16,16 @@ pub mod p1 {
 
     use anyhow::Context;
 
-    use crate::{FromBufRead, Part, PartSolution};
+    use crate::solution::{Part, PartSolution, SolutionInput};
 
     pub struct P1;
 
     pub struct Input {
-        // observation! each num is 5 digits, meaning we can represent these lists
-        // with constant-space. (100,000 entries)
-        //
-        // we could almost represent them with a 32-bit number *except* for the fact
-        // that we could have multiple versions of the same number.
-        //
-        // So we could do something like a 100,000-long array where each element has
-        // an increment counter, and we iterate through them by:
-        // - when at an empty bucket, skip until we reach a full bucket
-        // - "count" a bucket by decrementing it
-        //
-        // This also means we don't have to do n * log(n) sorting
-        //
         l: Vec<u32>,
         r: Vec<u32>,
     }
 
-    impl FromBufRead for Input {
+    impl SolutionInput for Input {
         fn from_reader(reader: impl std::io::BufRead) -> anyhow::Result<Self> {
             let mut l: Vec<u32> = vec![];
             let mut r: Vec<u32> = vec![];
@@ -90,7 +77,7 @@ pub mod p2 {
 
     use anyhow::Context;
 
-    use crate::{FromBufRead, Part, PartSolution};
+    use crate::solution::{Part, PartSolution, SolutionInput};
 
     pub struct Input {
         l: [bool; 100_000],
@@ -103,7 +90,7 @@ pub mod p2 {
         }
     }
 
-    impl FromBufRead for Input {
+    impl SolutionInput for Input {
         fn from_reader(reader: impl std::io::BufRead) -> anyhow::Result<Self> {
             let mut l = [false; 100_000];
             let mut r: Vec<u32> = vec![];

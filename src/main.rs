@@ -1,7 +1,10 @@
 use std::{env, str::FromStr};
 
 use anyhow::{anyhow, Context, Result};
-use aoc24::{d1::D1, Day, Part};
+use aoc24::{
+    day,
+    solution::{DaySolution, Part},
+};
 
 fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
@@ -10,7 +13,7 @@ fn main() -> Result<()> {
     let part: Part = part_num.try_into()?;
 
     let solution = match day_num {
-        1 => D1::solve(part),
+        1 => day::D1::solve(part),
         _ => Err(anyhow!("No solution for day {}", day_num)),
     }?;
 
