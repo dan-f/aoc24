@@ -1,41 +1,86 @@
 use std::{
     env::current_dir,
+    fmt::Display,
     fs::File,
     io::{BufRead, BufReader},
 };
 
+use anyhow::anyhow;
+
 pub mod d1;
 
-// TODO probably something like:
-// - refactor this whole type into something called "Solution" and rename `Solution` associated type to `Answer`
-// - then have `Day` have two solutions; one for pt1, one for pt2
-//
-// TODO refactor out anyhow::Error as this is "library" code
-pub trait Day: Default {
-    type Input;
-    type Outcome;
-
-    /// The filename of the day's input relative to the local `input/` dir
-    fn input_fname(&self) -> &'static str;
-
-    fn parse(&self, reader: impl BufRead) -> anyhow::Result<Self::Input>;
-
-    /// Compute the solution given a buffered reader over the input file
-    fn solve(&self, input: Self::Input) -> Self::Outcome;
-
-    /// Format a solution for submission
-    fn fmt(&self, soln: &Self::Outcome) -> String;
+/// Daily exercise component
+pub enum Part {
+    One,
+    Two,
 }
 
-pub fn solve_day(day: impl Day) -> anyhow::Result<String> {
-    let mut input_path = current_dir()?;
-    input_path.push("input");
-    input_path.push(day.input_fname());
+impl Part {
+    pub fn num(&self) -> u8 {
+        match self {
+            Self::One => 1,
+            Self::Two => 2,
+        }
+    }
+}
 
-    let input_file = File::open(input_path)?;
-    let mut reader = BufReader::new(input_file);
+impl TryFrom<u8> for Part {
+    type Error = anyhow::Error;
 
-    let input = day.parse(&mut reader)?;
-    let soln = day.solve(input);
-    Ok(day.fmt(&soln))
+    fn try_from(value: u8) -> anyhow::Result<Self> {
+        match value {
+            1 => Ok(Self::One),
+            2 => Ok(Self::Two),
+            _ => Err(anyhow!("Part must be 1 or 2, but got {}", value)),
+        }
+    }
+}
+
+/// Parse from a `BufRead`
+pub trait FromBufRead: Sized {
+    fn from_reader(reader: impl BufRead) -> anyhow::Result<Self>;
+}
+
+/// Daily two-part exercise
+pub trait Day {
+    type P1: PartSolution;
+    type P2: PartSolution;
+
+    /// The day (1-indexed)
+    fn num() -> u8;
+
+    /// Compute the formatted result for the given `part`
+    fn solve(part: Part) -> anyhow::Result<String> {
+        let mut input_path = current_dir()?;
+        input_path.push("input");
+        input_path.push(format!("d{}p{}", Self::num(), part.num()));
+
+        let input_file = File::open(input_path)?;
+        let reader = BufReader::new(input_file);
+
+        match part {
+            Part::One => Self::P1::solve_from_reader(reader),
+            Part::Two => Self::P2::solve_from_reader(reader),
+        }
+    }
+}
+
+/// Solution for a given daily exercise's part component
+pub trait PartSolution {
+    /// Pre-processed input
+    type Input: FromBufRead;
+    /// Exercise result
+    type Output: Display;
+
+    /// The exercise part
+    fn part() -> Part;
+
+    /// Compute the solution from the pre-processed input
+    fn solve(input: Self::Input) -> Self::Output;
+
+    fn solve_from_reader(reader: impl BufRead) -> anyhow::Result<String> {
+        let input = Self::Input::from_reader(reader)?;
+        let output = Self::solve(input);
+        Ok(format!("{}", output))
+    }
 }
