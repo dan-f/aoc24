@@ -13,8 +13,12 @@ fn main() -> Result<()> {
     let part: Part = part_num.try_into()?;
 
     let solution = match day_num {
+        0 => Err(anyhow!("Days begin at 1")),
+
         1 => day::D1::solve(part),
-        _ => Err(anyhow!("No solution for day {}", day_num)),
+
+        26..=u8::MAX => Err(anyhow!("Day {} out of range", day_num)),
+        _ => Err(anyhow!("Day {} not yet solved", day_num)),
     }?;
 
     println!("Day {} part {} solution: {}", day_num, part_num, solution);
