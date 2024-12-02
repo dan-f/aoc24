@@ -79,12 +79,6 @@ pub mod p2 {
         r: Vec<u32>,
     }
 
-    impl Input {
-        pub fn l_contains(&self, n: u32) -> bool {
-            self.l[n as usize]
-        }
-    }
-
     impl SolutionInput for Input {
         fn read(reader: impl std::io::BufRead) -> Result<Self, InputError> {
             let mut l = [false; 100_000];
