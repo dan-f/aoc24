@@ -1,32 +1,18 @@
-use std::{env, str::FromStr};
+use aoc24::{cli::Cli, day, part::Part, solution};
 
-use anyhow::{anyhow, Context, Result};
-use aoc24::{
-    day,
-    solution::{DaySolution, Part},
-};
+use anyhow::{anyhow, Result};
+use clap::Parser;
 
 fn main() -> Result<()> {
-    let args: Vec<_> = env::args().collect();
-    let day_num = parse_num_arg("day", args.get(1))?;
-    let part_num = parse_num_arg("part", args.get(2))?;
-    let part: Part = part_num.try_into()?;
+    let cli = Cli::parse();
+    // `cli.part` guaranteed to be 1 or 2 via `clap`
+    let part = Part::try_from(cli.part).expect("`clap` to parse valid part");
 
-    let solution = match day_num {
-        0 => Err(anyhow!("Days begin at 1")),
-
-        1 => day::D1::solve(part),
-
-        26..=u8::MAX => Err(anyhow!("Day {} out of range", day_num)),
-        _ => Err(anyhow!("Day {} not yet solved", day_num)),
+    let solution = match cli.day {
+        1 => solution::solve_day::<day::D1>(part),
+        _ => return Err(anyhow!("Day {} not yet solved", cli.day)),
     }?;
 
-    println!("Day {} part {} solution: {}", day_num, part_num, solution);
-
+    println!("Day {} part {} solution: {}", cli.day, cli.part, solution);
     Ok(())
-}
-
-fn parse_num_arg(name: &str, arg: Option<&String>) -> anyhow::Result<u8> {
-    let arg = arg.context(format!("Missing {} argument", name))?;
-    FromStr::from_str(arg).context(format!("Failed to parse {} from {}", name, arg))
 }

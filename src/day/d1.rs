@@ -1,4 +1,6 @@
-use crate::solution::DaySolution;
+use crate::{input::InputError, solution::DaySolution};
+
+use std::str::FromStr;
 
 pub struct D1;
 
@@ -12,11 +14,11 @@ impl DaySolution for D1 {
 }
 
 pub mod p1 {
-    use std::str::FromStr;
-
-    use anyhow::Context;
-
-    use crate::solution::{Part, PartSolution, SolutionInput};
+    use crate::{
+        input::{InputError, SolutionInput},
+        part::Part,
+        solution::{PartSolution, SolveResult},
+    };
 
     pub struct P1;
 
@@ -26,21 +28,12 @@ pub mod p1 {
     }
 
     impl SolutionInput for Input {
-        fn from_reader(reader: impl std::io::BufRead) -> anyhow::Result<Self> {
+        fn read(reader: impl std::io::BufRead) -> Result<Self, InputError> {
             let mut l: Vec<u32> = vec![];
             let mut r: Vec<u32> = vec![];
 
-            for line in reader.lines() {
-                let line = line.context("Failed to read line")?;
-                let mut nums = line.split_whitespace();
-                let l_num = nums
-                    .next()
-                    .and_then(|x| u32::from_str(x).ok())
-                    .context("Line in input not well-formatted (expected two numbers)")?;
-                let r_num = nums
-                    .next()
-                    .and_then(|x| u32::from_str(x).ok())
-                    .context("Line in input not well-formatted (expected two numbers)")?;
+            for (idx, line) in reader.lines().enumerate() {
+                let (l_num, r_num) = super::parse_line(idx, line?)?;
                 l.push(l_num);
                 r.push(r_num);
             }
@@ -60,24 +53,26 @@ pub mod p1 {
             Part::One
         }
 
-        fn solve(input: Self::Input) -> Self::Output {
+        fn solve(input: Self::Input) -> SolveResult<Self::Output> {
             let mut outcome = 0;
 
             for (l, r) in input.l.iter().zip(input.r.iter()) {
                 outcome += l.abs_diff(*r)
             }
 
-            outcome
+            Ok(outcome)
         }
     }
 }
 
 pub mod p2 {
-    use std::str::FromStr;
+    use crate::{
+        input::{InputError, SolutionInput},
+        part::Part,
+        solution::{PartSolution, SolveResult},
+    };
 
-    use anyhow::Context;
-
-    use crate::solution::{Part, PartSolution, SolutionInput};
+    use super::parse_line;
 
     pub struct Input {
         l: [bool; 100_000],
@@ -91,21 +86,12 @@ pub mod p2 {
     }
 
     impl SolutionInput for Input {
-        fn from_reader(reader: impl std::io::BufRead) -> anyhow::Result<Self> {
+        fn read(reader: impl std::io::BufRead) -> Result<Self, InputError> {
             let mut l = [false; 100_000];
             let mut r: Vec<u32> = vec![];
 
-            for line in reader.lines() {
-                let line = line.context("Failed to read line")?;
-                let mut nums = line.split_whitespace();
-                let l_num = nums
-                    .next()
-                    .and_then(|x| u32::from_str(x).ok())
-                    .context("Line in input not well-formatted (expected two numbers)")?;
-                let r_num = nums
-                    .next()
-                    .and_then(|x| u32::from_str(x).ok())
-                    .context("Line in input not well-formatted (expected two numbers)")?;
+            for (idx, line) in reader.lines().enumerate() {
+                let (l_num, r_num) = parse_line(idx, line?)?;
                 l[l_num as usize] = true;
                 r.push(r_num);
             }
@@ -124,7 +110,7 @@ pub mod p2 {
             Part::Two
         }
 
-        fn solve(input: Self::Input) -> Self::Output {
+        fn solve(input: Self::Input) -> SolveResult<Self::Output> {
             let mut out = 0;
 
             for n in input.r.iter() {
@@ -133,7 +119,28 @@ pub mod p2 {
                 }
             }
 
-            out
+            Ok(out)
         }
     }
+}
+
+fn parse_line(line_num: usize, line: String) -> Result<(u32, u32), InputError> {
+    let mut nums = line.split_whitespace();
+    let l_num = parse_num(line_num, nums.next())?;
+    let r_num = parse_num(line_num, nums.next())?;
+    Ok((l_num, r_num))
+}
+
+fn parse_num(line_num: usize, num: Option<&str>) -> Result<u32, InputError> {
+    let num = num.ok_or(InputError::InvalidInput {
+        msg: format!("Missing num on line {}", line_num),
+        source: None,
+    })?;
+
+    let num = u32::from_str(num).map_err(|source| InputError::InvalidInput {
+        msg: format!("Failed to parse {} as u32", num),
+        source: Some(Box::new(source)),
+    })?;
+
+    Ok(num)
 }
