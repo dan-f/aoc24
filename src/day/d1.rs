@@ -16,7 +16,6 @@ impl DaySolution for D1 {
 pub mod p1 {
     use crate::{
         input::{InputError, SolutionInput},
-        part::Part,
         solution::{PartSolution, SolveResult},
     };
 
@@ -49,10 +48,6 @@ pub mod p1 {
         type Input = Input;
         type Output = u32;
 
-        fn part() -> Part {
-            Part::One
-        }
-
         fn solve(input: Self::Input) -> SolveResult<Self::Output> {
             let mut outcome = 0;
 
@@ -68,7 +63,6 @@ pub mod p1 {
 pub mod p2 {
     use crate::{
         input::{InputError, SolutionInput},
-        part::Part,
         solution::{PartSolution, SolveResult},
     };
 
@@ -99,10 +93,6 @@ pub mod p2 {
     impl PartSolution for P2 {
         type Input = Input;
         type Output = u32;
-
-        fn part() -> Part {
-            Part::Two
-        }
 
         fn solve(input: Self::Input) -> SolveResult<Self::Output> {
             let mut out = 0;

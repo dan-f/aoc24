@@ -27,9 +27,6 @@ pub trait PartSolution {
     /// Exercise result
     type Output: Display;
 
-    /// The exercise part
-    fn part() -> Part;
-
     /// Compute the solution from the pre-processed input
     fn solve(input: Self::Input) -> SolveResult<Self::Output>;
 }
