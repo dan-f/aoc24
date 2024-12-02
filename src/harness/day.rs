@@ -15,6 +15,10 @@ pub trait Day {
         let mut input_path = current_dir().map_err(|err| InputError::from(err))?;
         input_path.push("input");
         input_path.push(format!("d{}p{}", Self::num(), part.num()));
+        if !input_path.exists() {
+            input_path.pop();
+            input_path.push(format!("d{}", Self::num()));
+        }
 
         let input_file = File::open(input_path).map_err(|err| InputError::from(err))?;
         let reader = BufReader::new(input_file);
