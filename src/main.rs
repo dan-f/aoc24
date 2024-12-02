@@ -1,4 +1,8 @@
-use aoc24::{cli::Cli, day, part::Part, solution};
+use aoc24::{
+    cli::Cli,
+    day::*,
+    harness::{Day, Part},
+};
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
@@ -9,7 +13,7 @@ fn main() -> Result<()> {
     let part = Part::try_from(cli.part).expect("`clap` to parse valid part");
 
     let solution = match cli.day {
-        1 => solution::solve_day::<day::D1>(part),
+        1 => D1::run(part),
         _ => return Err(anyhow!("Day {} not yet solved", cli.day)),
     }?;
 

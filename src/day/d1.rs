@@ -1,10 +1,10 @@
-use crate::{input::InputError, solution::DaySolution};
-
 use std::str::FromStr;
+
+use crate::harness::{Day, InputError};
 
 pub struct D1;
 
-impl DaySolution for D1 {
+impl Day for D1 {
     type P1 = p1::P1;
     type P2 = p2::P2;
 
@@ -14,10 +14,7 @@ impl DaySolution for D1 {
 }
 
 pub mod p1 {
-    use crate::{
-        input::{InputError, SolutionInput},
-        solution::{PartSolution, SolveResult},
-    };
+    use crate::harness::{InputError, Solution, SolutionInput, SolveResult};
 
     pub struct P1;
 
@@ -44,7 +41,7 @@ pub mod p1 {
         }
     }
 
-    impl PartSolution for P1 {
+    impl Solution for P1 {
         type Input = Input;
         type Output = u32;
 
@@ -57,10 +54,7 @@ pub mod p1 {
 }
 
 pub mod p2 {
-    use crate::{
-        input::{InputError, SolutionInput},
-        solution::{PartSolution, SolveResult},
-    };
+    use crate::harness::{InputError, Solution, SolutionInput, SolveResult};
 
     use super::parse_line;
 
@@ -86,7 +80,7 @@ pub mod p2 {
 
     pub struct P2;
 
-    impl PartSolution for P2 {
+    impl Solution for P2 {
         type Input = Input;
         type Output = u32;
 

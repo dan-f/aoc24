@@ -12,6 +12,7 @@ pub trait SolutionInput: Sized {
 pub enum InputError {
     #[error("input file not available or failed to read")]
     FileIo(#[from] io::Error),
+
     #[error("failed to parse input: {msg}")]
     InvalidInput {
         msg: String,
