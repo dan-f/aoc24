@@ -14,6 +14,7 @@ fn main() -> Result<()> {
 
     let solution = match cli.day {
         1 => D1::run(part),
+        2 => D2::run(part),
         _ => return Err(anyhow!("Day {} not yet solved", cli.day)),
     }?;
 

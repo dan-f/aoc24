@@ -1,6 +1,7 @@
-use std::str::FromStr;
-
-use crate::harness::{Day, InputError};
+use crate::{
+    harness::{Day, InputError},
+    parse,
+};
 
 pub struct D1;
 
@@ -103,10 +104,5 @@ fn parse_num(line_num: usize, num: Option<&str>) -> Result<u32, InputError> {
         source: None,
     })?;
 
-    let num = u32::from_str(num).map_err(|source| InputError::InvalidInput {
-        msg: format!("Failed to parse {} as u32", num),
-        source: Some(Box::new(source)),
-    })?;
-
-    Ok(num)
+    parse::parse_u32(num)
 }
