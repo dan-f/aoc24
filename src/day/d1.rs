@@ -49,13 +49,9 @@ pub mod p1 {
         type Output = u32;
 
         fn solve(input: Self::Input) -> SolveResult<Self::Output> {
-            let mut outcome = 0;
-
-            for (l, r) in input.l.iter().zip(input.r.iter()) {
-                outcome += l.abs_diff(*r)
-            }
-
-            Ok(outcome)
+            let ls = input.l.iter();
+            let rs = input.r.iter();
+            Ok(ls.zip(rs).map(|(l, r)| l.abs_diff(*r)).sum())
         }
     }
 }
@@ -95,15 +91,7 @@ pub mod p2 {
         type Output = u32;
 
         fn solve(input: Self::Input) -> SolveResult<Self::Output> {
-            let mut out = 0;
-
-            for n in input.r.iter() {
-                if input.l[*n as usize] {
-                    out += n
-                }
-            }
-
-            Ok(out)
+            Ok(input.r.iter().filter(|n| input.l[**n as usize]).sum())
         }
     }
 }
