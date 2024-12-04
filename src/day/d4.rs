@@ -1,7 +1,4 @@
-use std::{
-    collections::HashSet,
-    ops::{Add, Mul},
-};
+use std::ops::{Add, Mul};
 
 use once_cell::sync::Lazy;
 
@@ -11,7 +8,7 @@ pub struct D4;
 
 impl Day for D4 {
     type P1<'a> = p1::P1;
-    type P2<'a> = p1::P1;
+    type P2<'a> = p2::P2;
 
     fn day() -> u8 {
         4
@@ -49,6 +46,43 @@ pub mod p1 {
 
             Ok(count)
         }
+    }
+}
+
+pub mod p2 {
+    use crate::{day::d4::Point, harness::Solution};
+
+    use super::Crossword;
+
+    pub struct P2;
+
+    impl<'a> Solution<'a> for P2 {
+        type Input = Crossword;
+        type Output = usize;
+
+        fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
+            Ok(input
+                .points()
+                .filter(|p| input.get(*p) == Some('A'))
+                .filter(|p| is_x_mas(&input, p))
+                .count())
+        }
+    }
+
+    fn is_x_mas(cw: &Crossword, point: &Point) -> bool {
+        if cw.get(*point) != Some('A') {
+            return false;
+        }
+
+        let nw = *point + Point::new(-1, -1);
+        let ne = *point + Point::new(1, -1);
+        let se = *point + Point::new(1, 1);
+        let sw = *point + Point::new(-1, 1);
+
+        ((cw.get(nw) == Some('M') && cw.get(se) == Some('S'))
+            || (cw.get(nw) == Some('S') && cw.get(se) == Some('M')))
+            && ((cw.get(sw) == Some('M') && cw.get(ne) == Some('S'))
+                || (cw.get(sw) == Some('S') && cw.get(ne) == Some('M')))
     }
 }
 
