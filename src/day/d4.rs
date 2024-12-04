@@ -1,4 +1,9 @@
-use std::ops::Add;
+use std::{
+    collections::HashSet,
+    ops::{Add, Mul},
+};
+
+use once_cell::sync::Lazy;
 
 use crate::harness::{input, iter, Day, SolutionInput};
 
@@ -14,18 +19,35 @@ impl Day for D4 {
 }
 
 pub mod p1 {
+    use std::collections::HashSet;
+
     use crate::harness::Solution;
 
-    use super::Crossword;
+    use super::{Crossword, Point};
 
     pub struct P1;
 
     impl<'a> Solution<'a> for P1 {
         type Input = Crossword;
-        type Output = u32;
+        type Output = usize;
 
         fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
-            todo!()
+            let mut visited_xs: HashSet<Point> = HashSet::new();
+
+            let mut count = 0;
+            for point in input.points() {
+                let xs: Vec<_> = input
+                    .find_xs(point)
+                    .into_iter()
+                    .filter(|p| !visited_xs.contains(p))
+                    .collect();
+                for p in xs {
+                    count += input.words_from_point("XMAS", p);
+                    visited_xs.insert(p);
+                }
+            }
+
+            Ok(count)
         }
     }
 }
@@ -33,8 +55,8 @@ pub mod p1 {
 pub struct Crossword(Vec<Vec<char>>);
 
 impl Crossword {
-    pub fn word_count(&self, word: &str, point: Point) -> usize {
-        let deltas = [
+    const DIRS: Lazy<[Point; 8]> = Lazy::new(|| {
+        [
             Point::new(1, 0),
             Point::new(0, 1),
             Point::new(-1, 0),
@@ -43,19 +65,35 @@ impl Crossword {
             Point::new(-1, 1),
             Point::new(-1, -1),
             Point::new(1, -1),
-        ];
+        ]
+    });
 
-        deltas
+    fn find_xs(&self, point: Point) -> Vec<Point> {
+        let points = match self.get(point) {
+            Some('X') => vec![point],
+            Some('M') => Self::DIRS.iter().map(|p| point + *p).collect(),
+            Some('A') => Self::DIRS.iter().map(|p| point + *p * 2).collect(),
+            Some('S') => Self::DIRS.iter().map(|p| point + *p * 3).collect(),
+            _ => vec![],
+        };
+
+        points
+            .into_iter()
+            .filter(|p| self.get(*p) == Some('X'))
+            .collect()
+    }
+
+    fn words_from_point(&self, word: &str, point: Point) -> usize {
+        Self::DIRS
             .into_iter()
             .filter(|delta| {
                 let has_word = self.has_word(word, 0, point, *delta);
-                println!("[debug] has word for delta {:?}? {}", delta, has_word);
                 has_word
             })
             .count()
     }
 
-    pub fn has_word(&self, word: &str, word_idx: usize, point: Point, delta: Point) -> bool {
+    fn has_word(&self, word: &str, word_idx: usize, point: Point, delta: Point) -> bool {
         let to_match = if let Some(c) = word.chars().nth(word_idx) {
             c
         } else {
@@ -65,24 +103,17 @@ impl Crossword {
         let cur = if let Some(c) = self.get(point) {
             c
         } else {
-            println!("early return from `cur`");
             return false;
         };
 
         if cur != to_match {
-            println!(
-                "early return from `cur != match` - cur: {}, to_match: {}",
-                cur, to_match
-            );
             return false;
         }
-
-        println!("[has_word] pass - to_match: {}, cur: {}", to_match, cur);
 
         self.has_word(word, word_idx + 1, point + delta, delta)
     }
 
-    pub fn get(&self, idx: Point) -> Option<char> {
+    fn get(&self, idx: Point) -> Option<char> {
         if idx.x < 0 || idx.y < 0 {
             return None;
         }
@@ -90,6 +121,14 @@ impl Crossword {
         let y = idx.y as usize;
         let row = self.0.get(y)?;
         row.get(x).copied()
+    }
+
+    fn points(&self) -> impl Iterator<Item = Point> + '_ {
+        self.0.iter().enumerate().flat_map(|(col_i, row)| {
+            row.iter()
+                .enumerate()
+                .map(move |(row_i, _)| Point::new(row_i as isize, col_i as isize))
+        })
     }
 }
 
@@ -102,7 +141,7 @@ impl<'a> SolutionInput<'a> for Crossword {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct Point {
     x: isize,
     y: isize,
@@ -121,6 +160,17 @@ impl Add<Point> for Point {
         Point {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Mul<isize> for Point {
+    type Output = Point;
+
+    fn mul(self, rhs: isize) -> Self::Output {
+        Point {
+            x: self.x * rhs,
+            y: self.y * rhs,
         }
     }
 }
@@ -162,6 +212,6 @@ mod test {
             vec!['.', '.', '.', 'S', '.', '.', '.'],
         ]);
 
-        assert_eq!(2, crossword.word_count("XMAS", Point::new(3, 3)));
+        assert_eq!(2, crossword.words_from_point("XMAS", Point::new(3, 3)));
     }
 }
