@@ -33,8 +33,30 @@ pub mod p1 {
 pub struct Crossword(Vec<Vec<char>>);
 
 impl Crossword {
-    pub fn has_word(&self, mut word: Vec<char>, point: Point, delta: PointDelta) -> bool {
-        let to_match = if let Some(c) = word.pop() {
+    pub fn word_count(&self, word: &str, point: Point) -> usize {
+        let deltas = [
+            Point::new(1, 0),
+            Point::new(0, 1),
+            Point::new(-1, 0),
+            Point::new(0, -1),
+            Point::new(1, 1),
+            Point::new(-1, 1),
+            Point::new(-1, -1),
+            Point::new(1, -1),
+        ];
+
+        deltas
+            .into_iter()
+            .filter(|delta| {
+                let has_word = self.has_word(word, 0, point, *delta);
+                println!("[debug] has word for delta {:?}? {}", delta, has_word);
+                has_word
+            })
+            .count()
+    }
+
+    pub fn has_word(&self, word: &str, word_idx: usize, point: Point, delta: Point) -> bool {
+        let to_match = if let Some(c) = word.chars().nth(word_idx) {
             c
         } else {
             return true;
@@ -43,21 +65,31 @@ impl Crossword {
         let cur = if let Some(c) = self.get(point) {
             c
         } else {
+            println!("early return from `cur`");
             return false;
         };
 
-        let next_point = if let Some(p) = point + delta {
-            p
-        } else {
+        if cur != to_match {
+            println!(
+                "early return from `cur != match` - cur: {}, to_match: {}",
+                cur, to_match
+            );
             return false;
-        };
+        }
 
-        cur == to_match && self.has_word(word, next_point, delta)
+        println!("[has_word] pass - to_match: {}, cur: {}", to_match, cur);
+
+        self.has_word(word, word_idx + 1, point + delta, delta)
     }
 
     pub fn get(&self, idx: Point) -> Option<char> {
-        let row = self.0.get(idx.y)?;
-        row.get(idx.x).copied()
+        if idx.x < 0 || idx.y < 0 {
+            return None;
+        }
+        let x = idx.x as usize;
+        let y = idx.y as usize;
+        let row = self.0.get(y)?;
+        row.get(x).copied()
     }
 }
 
@@ -72,42 +104,30 @@ impl<'a> SolutionInput<'a> for Crossword {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point {
-    x: usize,
-    y: usize,
-}
-
-impl Point {
-    pub fn new(x: usize, y: usize) -> Self {
-        Self { x, y }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct PointDelta {
     x: isize,
     y: isize,
 }
 
-impl PointDelta {
+impl Point {
     pub fn new(x: isize, y: isize) -> Self {
         Self { x, y }
     }
 }
 
-impl Add<PointDelta> for Point {
-    type Output = Option<Point>;
+impl Add<Point> for Point {
+    type Output = Point;
 
-    fn add(self, rhs: PointDelta) -> Self::Output {
-        Some(Point {
-            x: self.x.checked_add_signed(rhs.x)?,
-            y: self.y.checked_add_signed(rhs.y)?,
-        })
+    fn add(self, rhs: Point) -> Self::Output {
+        Point {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::day::d4::{Point, PointDelta};
+    use crate::day::d4::Point;
 
     use super::Crossword;
 
@@ -121,14 +141,27 @@ mod test {
             vec!['.', 'X', '.', '.', '.', '.'],
         ]);
 
-        let xmas = || "XMAS".chars().rev().collect::<Vec<_>>();
+        assert!(!crossword.has_word("xmas", 0, Point::new(0, 0), Point::new(1, 0)));
+        assert!(!crossword.has_word("xmas", 0, Point::new(5, 0), Point::new(1, 0)));
 
-        assert!(!crossword.has_word(xmas(), Point::new(0, 0), PointDelta::new(1, 0)));
-        assert!(!crossword.has_word(xmas(), Point::new(5, 0), PointDelta::new(1, 0)));
+        assert!(crossword.has_word("XMAS", 0, Point::new(2, 0), Point::new(1, 1)));
+        assert!(crossword.has_word("XMAS", 0, Point::new(4, 1), Point::new(-1, 0)));
+        assert!(crossword.has_word("XMAS", 0, Point::new(0, 3), Point::new(1, 0)));
+        assert!(crossword.has_word("XMAS", 0, Point::new(1, 4), Point::new(0, -1)));
+    }
 
-        assert!(crossword.has_word(xmas(), Point::new(2, 0), PointDelta::new(1, 1)));
-        assert!(crossword.has_word(xmas(), Point::new(4, 1), PointDelta::new(-1, 0)));
-        assert!(crossword.has_word(xmas(), Point::new(0, 3), PointDelta::new(1, 0)));
-        assert!(crossword.has_word(xmas(), Point::new(1, 4), PointDelta::new(0, -1)));
+    #[test]
+    fn test_word_count() {
+        let crossword = Crossword(vec![
+            vec!['.', '.', '.', 'S', '.', '.', '.'],
+            vec!['.', '.', '.', 'A', '.', '.', '.'],
+            vec!['.', '.', '.', 'M', '.', '.', '.'],
+            vec!['.', '.', '.', 'X', '.', '.', '.'],
+            vec!['.', '.', '.', 'M', '.', '.', '.'],
+            vec!['.', '.', '.', 'A', '.', '.', '.'],
+            vec!['.', '.', '.', 'S', '.', '.', '.'],
+        ]);
+
+        assert_eq!(2, crossword.word_count("XMAS", Point::new(3, 3)));
     }
 }
