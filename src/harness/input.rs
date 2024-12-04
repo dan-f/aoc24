@@ -3,9 +3,9 @@ use std::io::{self, BufRead};
 use thiserror::Error;
 
 /// Pre-processed solution input
-pub trait SolutionInput: Sized {
+pub trait SolutionInput<'a>: Sized {
     /// Parse from a `BufRead`
-    fn read(reader: impl BufRead) -> Result<Self, InputError>;
+    fn read(reader: impl BufRead + 'a) -> self::Result<Self>;
 }
 
 #[derive(Debug, Error)]
@@ -19,3 +19,5 @@ pub enum InputError {
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
 }
+
+pub type Result<T> = std::result::Result<T, InputError>;

@@ -1,23 +1,27 @@
 use std::{env::current_dir, fs::File, io::BufReader};
 
-use super::{error::Result, input::InputError, part::Part, solution::Solution};
+use super::{
+    input::InputError,
+    part::Part,
+    solution::{Result, Solution},
+};
 
 /// Daily two-part exercise
 pub trait Day {
-    type P1: Solution;
-    type P2: Solution;
+    type P1<'a>: Solution<'a>;
+    type P2<'a>: Solution<'a>;
 
     /// The day (1-indexed)
-    fn num() -> u8;
+    fn day() -> u8;
 
     /// Run the solution for the given daily `part`
     fn run(part: Part) -> Result<String> {
         let mut input_path = current_dir().map_err(|err| InputError::from(err))?;
         input_path.push("input");
-        input_path.push(format!("d{}p{}", Self::num(), part.num()));
+        input_path.push(format!("d{}p{}", Self::day(), part.num()));
         if !input_path.exists() {
             input_path.pop();
-            input_path.push(format!("d{}", Self::num()));
+            input_path.push(format!("d{}", Self::day()));
         }
 
         let input_file = File::open(input_path).map_err(|err| InputError::from(err))?;

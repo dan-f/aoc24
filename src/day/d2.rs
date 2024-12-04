@@ -1,70 +1,70 @@
 use crate::{
-    harness::{Day, InputError, SolutionInput},
+    harness::{iter, Day, InputError, Inputs, SolutionInput},
     parse,
 };
 
 pub struct D2;
 
 impl Day for D2 {
-    type P1 = p1::P1;
-    type P2 = p2::P2;
+    type P1<'a> = p1::P1;
+    type P2<'a> = p2::P2;
 
-    fn num() -> u8 {
+    fn day() -> u8 {
         2
     }
 }
 
 mod p1 {
-    use crate::harness::Solution;
+    use crate::harness::{Inputs, Solution};
 
     use super::Report;
 
     pub struct P1;
 
-    impl Solution for P1 {
-        type Input = Vec<Report>;
+    impl<'a> Solution<'a> for P1 {
+        type Input = Box<dyn Inputs<Report> + 'a>;
         type Output = usize;
 
-        fn solve(input: Self::Input) -> crate::harness::SolveResult<Self::Output> {
-            Ok(input
-                .iter()
-                .filter(|report| report.safety().is_safe())
-                .count())
+        fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
+            input.solve_fold(0, |count, report| {
+                Ok(if report.safety().is_safe() {
+                    count + 1
+                } else {
+                    count
+                })
+            })
         }
     }
 }
 
 mod p2 {
-    use crate::harness::Solution;
+    use crate::harness::{Inputs, Solution};
 
     use super::Report;
 
     pub struct P2;
 
-    impl Solution for P2 {
-        type Input = Vec<Report>;
+    impl<'a> Solution<'a> for P2 {
+        type Input = Box<dyn Inputs<Report> + 'a>;
         type Output = usize;
 
-        fn solve(input: Self::Input) -> crate::harness::SolveResult<Self::Output> {
-            Ok(input
-                .iter()
-                .filter(|report| report.safe_with_tolerance())
-                .count())
+        fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
+            input.solve_fold(0, |count, report| {
+                Ok(if report.safe_with_tolerance() {
+                    count + 1
+                } else {
+                    count
+                })
+            })
         }
     }
 }
 
-impl SolutionInput for Vec<Report> {
-    fn read(reader: impl std::io::BufRead) -> Result<Self, crate::harness::InputError> {
-        let mut reports: Vec<_> = vec![];
-
-        for line in reader.lines() {
-            let line = line?;
-            let nums: Vec<_> = line.split_whitespace().collect();
-            reports.push(Report::parse(nums)?);
-        }
-
-        Ok(reports)
+impl<'a> SolutionInput<'a> for Box<dyn Inputs<Report> + 'a> {
+    fn read(reader: impl std::io::BufRead + 'a) -> Result<Self, crate::harness::InputError> {
+        Ok(Box::new(iter::lines(reader).map(|line| {
+            Report::parse(line?.split_whitespace().collect::<Vec<_>>())
+        })))
     }
 }
 

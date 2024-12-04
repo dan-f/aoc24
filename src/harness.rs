@@ -1,11 +1,11 @@
 mod day;
-mod error;
-mod input;
+pub mod input;
+pub mod iter;
 mod part;
 mod solution;
 
-pub use day::*;
-pub use error::*;
-pub use input::*;
+pub use day::Day;
+pub use input::{InputError, SolutionInput};
+pub use iter::Inputs;
 pub use part::*;
 pub use solution::*;
