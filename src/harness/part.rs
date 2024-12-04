@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 /// Daily exercise component
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Part {
     One,
     Two,

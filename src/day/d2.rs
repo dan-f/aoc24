@@ -26,7 +26,7 @@ mod p1 {
         type Output = usize;
 
         fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
-            input.solve_fold(0, |count, report| {
+            input.fold_solve(0, |count, report| {
                 Ok(if report.safety().is_safe() {
                     count + 1
                 } else {
@@ -49,7 +49,7 @@ mod p2 {
         type Output = usize;
 
         fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
-            input.solve_fold(0, |count, report| {
+            input.fold_solve(0, |count, report| {
                 Ok(if report.safe_with_tolerance() {
                     count + 1
                 } else {

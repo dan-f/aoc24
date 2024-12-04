@@ -8,7 +8,7 @@ use std::io::BufRead;
 use super::{input, solution};
 
 pub trait Inputs<Item>: Iterator<Item = input::Result<Item>> {
-    fn solve_fold<T, F>(self, init: T, mut f: F) -> solution::Result<T>
+    fn fold_solve<T, F>(self, init: T, mut f: F) -> solution::Result<T>
     where
         Self: Sized,
         F: FnMut(T, Item) -> solution::Result<T>,

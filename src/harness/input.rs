@@ -5,7 +5,7 @@ use thiserror::Error;
 /// Pre-processed solution input
 pub trait SolutionInput<'a>: Sized {
     /// Parse from a `BufRead`
-    fn read(reader: impl BufRead + 'a) -> self::Result<Self>;
+    fn read(reader: impl BufRead + 'a) -> Result<Self>;
 }
 
 #[derive(Debug, Error)]
