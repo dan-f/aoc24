@@ -2,6 +2,7 @@ use std::array;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
+use update::Update;
 
 use crate::{
     harness::{iter, Day, SolutionInput},
@@ -12,7 +13,7 @@ pub struct D5;
 
 impl Day for D5 {
     type P1<'a> = p1::P1;
-    type P2<'a> = p1::P1;
+    type P2<'a> = p2::P2;
 
     fn day() -> u8 {
         5
@@ -20,9 +21,9 @@ impl Day for D5 {
 }
 
 mod p1 {
-    use crate::{day::d5::PageSet, harness::Solution};
+    use crate::harness::Solution;
 
-    use super::{Input, PageMap, Rule, Update};
+    use super::{update, Input};
 
     pub struct P1;
 
@@ -34,46 +35,39 @@ mod p1 {
             Ok(input
                 .updates
                 .iter()
-                .filter(|u| in_order(u, &input.rules))
-                .map(|u| middle(u))
+                .filter(|u| update::is_in_order(u, &input.rules))
+                .map(|u| update::midpoint(u))
                 .sum())
         }
     }
+}
 
-    fn in_order(update: &Update, all_rules: &Vec<Rule>) -> bool {
-        let pages: PageSet = update.iter().copied().collect();
-        let mut rules: PageMap<PageSet> = PageMap::new(); // page -> preceding pages
-        for (pre, suc) in all_rules {
-            if pages.has(pre) && pages.has(suc) {
-                if !rules.has(suc) {
-                    rules.add(suc, PageSet::new());
-                }
-                rules.get_mut(suc).unwrap().add(*pre);
-            }
+mod p2 {
+    use crate::harness::Solution;
+
+    use super::{update, Input};
+
+    pub struct P2;
+
+    impl<'a> Solution<'a> for P2 {
+        type Input = Input;
+        type Output = u32;
+
+        fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
+            Ok(input
+                .updates
+                .iter()
+                .filter(|u| !update::is_in_order(u, &input.rules))
+                .map(|u| update::reorder(u, &input.rules))
+                .map(|u| update::midpoint(&u))
+                .sum())
         }
-
-        let mut preceding = PageSet::new();
-        for page in update {
-            if let Some(must_precede) = rules.get(page) {
-                if must_precede.intersect_count(&preceding) != must_precede.len() {
-                    return false;
-                }
-            }
-            preceding.add(*page);
-        }
-
-        true
-    }
-
-    fn middle(update: &Update) -> u32 {
-        update[update.len() / 2]
     }
 }
 
 const PAGES: usize = 100;
 
 type Rule = (u32, u32);
-type Update = Vec<u32>;
 
 #[derive(Debug)]
 pub struct Input {
@@ -113,6 +107,75 @@ impl<'a> SolutionInput<'a> for Input {
     }
 }
 
+fn dependency_map(update: &Update, all_rules: &Vec<Rule>) -> PageMap<PageSet> {
+    let pages: PageSet = update.iter().copied().collect();
+    let mut map: PageMap<PageSet> = PageMap::new(); // page -> preceding pages
+    for page in update.iter() {
+        map.add(page, PageSet::new());
+    }
+    for (pre, suc) in all_rules {
+        if pages.has(pre) && pages.has(suc) {
+            map.get_mut(suc).unwrap().add(*pre);
+        }
+    }
+    map
+}
+
+mod update {
+    use super::{dependency_map, PageSet, Rule};
+
+    pub type Update = Vec<u32>;
+
+    pub fn reorder(update: &Update, all_rules: &Vec<Rule>) -> Update {
+        let rules = dependency_map(update, all_rules);
+        let mut to_explore: Vec<_> = update.iter().copied().rev().collect();
+        let mut in_order = vec![];
+        let mut added = PageSet::new();
+
+        while let Some(page) = to_explore.pop() {
+            if added.has(&page) {
+                continue;
+            }
+
+            let must_precede = rules.get(&page).unwrap();
+            let missing = must_precede.difference(&added);
+
+            if missing.len() > 0 {
+                to_explore.push(page);
+                for p in missing.iter() {
+                    to_explore.push(p);
+                }
+            } else {
+                in_order.push(page);
+                added.add(page);
+            }
+        }
+
+        in_order
+    }
+
+    pub fn is_in_order(update: &Update, all_rules: &Vec<Rule>) -> bool {
+        let rules = dependency_map(update, all_rules);
+
+        let mut preceding = PageSet::new();
+        for page in update {
+            if let Some(must_precede) = rules.get(page) {
+                if must_precede.intersect_count(&preceding) != must_precede.len() {
+                    return false;
+                }
+            }
+            preceding.add(*page);
+        }
+
+        true
+    }
+
+    pub fn midpoint(update: &Update) -> u32 {
+        update[update.len() / 2]
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub struct PageMap<T>([Option<T>; PAGES]);
 
 impl<T> PageMap<T> {
@@ -155,8 +218,32 @@ impl<T> PageMap<T> {
 
         count
     }
+
+    pub fn difference(&self, other: &PageMap<T>) -> PageMap<T>
+    where
+        T: PartialEq + Clone,
+    {
+        let mut new = PageMap::new();
+
+        for (page, item) in self.0.iter().enumerate() {
+            let page = page as u32;
+            if item.is_some() && item.as_ref() != other.get(&page) {
+                new.add(&page, item.as_ref().unwrap().clone());
+            }
+        }
+
+        new
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (u32, &T)> + '_ {
+        self.0
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, entry)| entry.as_ref().map(|t| (idx as u32, t)))
+    }
 }
 
+#[derive(Clone, PartialEq)]
 pub struct PageSet(PageMap<()>);
 
 impl PageSet {
@@ -182,6 +269,14 @@ impl PageSet {
 
     pub fn intersect_count(&self, other: &PageSet) -> u32 {
         self.0.intersect_count(&other.0)
+    }
+
+    pub fn difference(&self, other: &PageSet) -> PageSet {
+        Self(self.0.difference(&other.0))
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = u32> + '_ {
+        self.0.iter().map(|(idx, _)| idx)
     }
 }
 
