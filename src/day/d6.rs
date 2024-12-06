@@ -14,11 +14,11 @@ impl Day for D6 {
 }
 
 pub mod p1 {
-    use std::collections::HashSet;
+    use std::{collections::HashSet, iter};
 
     use crate::harness::Solution;
 
-    use super::{grid::Point, Map};
+    use super::Map;
 
     pub struct P1;
 
@@ -27,21 +27,20 @@ pub mod p1 {
         type Output = usize;
 
         fn solve(mut input: Self::Input) -> crate::harness::Result<Self::Output> {
-            let mut visited: HashSet<Point> = HashSet::new();
-
-            while let Some(prev_pos) = input.move_guard() {
-                visited.insert(prev_pos);
-            }
-
-            Ok(visited.len())
+            Ok(iter::from_fn(|| input.move_guard())
+                .map(|(point, _)| point)
+                .collect::<HashSet<_>>()
+                .len())
         }
     }
 }
 
 pub mod p2 {
+    use std::{collections::HashSet, iter};
+
     use crate::harness::Solution;
 
-    use super::Map;
+    use super::{Map, Position};
 
     pub struct P2;
 
@@ -49,20 +48,61 @@ pub mod p2 {
         type Input = Map;
         type Output = usize;
 
-        fn solve(input: Self::Input) -> crate::harness::Result<Self::Output> {
-            todo!()
+        fn solve(mut input: Self::Input) -> crate::harness::Result<Self::Output> {
+            let possible_placements: HashSet<_> = iter::from_fn(|| input.move_guard())
+                .map(|(point, _)| point)
+                .skip(1) // do not place at the guard's starting position
+                .collect();
+
+            Ok(possible_placements
+                .iter()
+                .filter(|point| {
+                    input.reset();
+                    input.place_obstacle(&point);
+                    let creates_cycle = has_cycle(&mut input);
+                    creates_cycle
+                })
+                .count())
         }
+    }
+
+    fn has_cycle(map: &mut Map) -> bool {
+        let mut visited: HashSet<Position> = HashSet::new();
+
+        while let Some(pos) = map.move_guard() {
+            if visited.contains(&pos) {
+                return true;
+            }
+            visited.insert(pos);
+        }
+
+        false
     }
 }
 
+type Position = (Point, Direction);
+
+fn point_facing(pos: &Position) -> Point {
+    pos.0
+        + match pos.1 {
+            Direction::North => Point::new(0, -1),
+            Direction::East => Point::new(1, 0),
+            Direction::South => Point::new(0, 1),
+            Direction::West => Point::new(-1, 0),
+        }
+}
+
+#[derive(Clone)]
 pub struct Map {
-    guard: Option<(Point, Direction)>,
+    guard_origin: Position,
+    cur_guard: Option<Position>,
+    obstacle: Option<Point>,
     grid: Grid<MapItem>,
 }
 
 impl Map {
     pub fn new(grid: Grid<MapItem>) -> Self {
-        let mut guard: Option<(Point, Direction)> = None;
+        let mut guard: Option<Position> = None;
 
         for x in 0..grid.cols() {
             for y in 0..grid.rows() {
@@ -73,39 +113,66 @@ impl Map {
             }
         }
 
-        Self { guard, grid }
+        Self {
+            guard_origin: guard.unwrap(),
+            cur_guard: guard,
+            obstacle: None,
+            grid,
+        }
     }
 
-    /// Move the guard, returning their previous position
-    pub fn move_guard(&mut self) -> Option<Point> {
-        let (g_point, g_dir) = if let Some(g) = self.guard {
+    /// Move the guard, returning their previous position. A move results in
+    /// either:
+    /// - the guard continuing in their cardinal direction
+    /// - the guard turning 90 degrees
+    /// - the guard moving off the grid
+    pub fn move_guard(&mut self) -> Option<Position> {
+        let guard_pos = if let Some(g) = self.cur_guard {
             g
         } else {
             return None;
         };
+        let (guard_point, guard_dir) = guard_pos;
 
-        let point_facing = g_point
-            + match g_dir {
-                Direction::North => Point::new(0, -1),
-                Direction::East => Point::new(1, 0),
-                Direction::South => Point::new(0, 1),
-                Direction::West => Point::new(-1, 0),
-            };
-
-        match self.grid.get(&point_facing) {
+        let facing = point_facing(&guard_pos);
+        match self.grid.get(&facing) {
             Some(MapItem::Empty) | Some(MapItem::Guard(_)) => {
-                self.guard.replace((point_facing, g_dir));
+                self.cur_guard.replace((facing, guard_dir));
             }
             Some(MapItem::Obstacle) => {
-                self.guard.replace((g_point, g_dir.turn()));
-                return self.move_guard();
+                self.cur_guard.replace((guard_point, guard_dir.turn()));
             }
             None => {
-                self.guard.take();
+                self.cur_guard.take();
             }
         };
 
-        Some(g_point)
+        Some((guard_point, guard_dir))
+    }
+
+    pub fn can_place_obstacle(&self, point: &Point) -> bool {
+        point != &self.guard_origin.0
+            && self.obstacle.is_none()
+            && self
+                .grid
+                .get(point)
+                .is_some_and(|item| item == &MapItem::Empty)
+    }
+
+    pub fn place_obstacle(&mut self, point: &Point) {
+        if !self.can_place_obstacle(point) {
+            return;
+        }
+        self.grid.set(point, MapItem::Obstacle);
+        self.obstacle.replace(*point);
+    }
+
+    pub fn reset(&mut self) {
+        self.cur_guard = Some(self.guard_origin);
+        if let Some(obstacle_pos) = self.obstacle {
+            self.grid.set(&obstacle_pos, MapItem::Empty);
+            self.obstacle.take();
+        }
     }
 }
 
@@ -131,13 +198,14 @@ fn parse_row(line: &str) -> Vec<MapItem> {
         .collect()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MapItem {
     Empty,
     Obstacle,
     Guard(Direction),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     North,
     East,
@@ -154,11 +222,21 @@ impl Direction {
             &Self::West => Self::North,
         }
     }
+
+    pub fn facing(&self) -> Point {
+        match self {
+            Direction::North => Point::new(0, -1),
+            Direction::East => Point::new(1, 0),
+            Direction::South => Point::new(0, 1),
+            Direction::West => Point::new(-1, 0),
+        }
+    }
 }
 
 mod grid {
     use std::ops::{Add, Mul};
 
+    #[derive(Clone)]
     pub struct Grid<T> {
         rows: Vec<Vec<T>>,
     }
@@ -193,6 +271,13 @@ mod grid {
             let y = idx.y as usize;
             let row = self.rows.get(y)?;
             row.get(x)
+        }
+
+        pub fn set(&mut self, idx: &Point, val: T) {
+            if self.get(idx).is_none() {
+                return;
+            }
+            self.rows[idx.y as usize][idx.x as usize] = val;
         }
     }
 
