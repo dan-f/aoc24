@@ -19,6 +19,7 @@ fn main() -> Result<()> {
         4 => D4::run(part),
         5 => D5::run(part),
         6 => D6::run(part),
+        7 => D7::run(part),
         _ => return Err(anyhow!("Day {} not yet solved", cli.day)),
     }?;
 

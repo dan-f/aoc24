@@ -1,7 +1,7 @@
 //! Utilities for lazy iterator-based solutions.
 //!
 //! Solutions which don't require random access to the entire input can instead
-//! iterate over inputs in chunks, e.g. line by line ([`lines`]). Those
+//! iterate over inputs in chunks, e.g. line by line ([`lines`]).
 
 use std::io::BufRead;
 
