@@ -5,7 +5,7 @@ pub struct D9;
 impl Day for D9 {
     type P1<'a> = p1::P1;
 
-    type P2<'a> = p1::P1;
+    type P2<'a> = p2::P2;
 
     fn day() -> u8 {
         9
@@ -78,6 +78,133 @@ pub mod p1 {
                 for b in iter::repeat_n(block, num_blocks) {
                     disk.push(b);
                 }
+            }
+
+            Ok(disk)
+        }
+    }
+}
+
+pub mod p2 {
+    use std::iter;
+
+    use crate::harness::{input, InputError, Solution, SolutionInput};
+
+    pub struct P2;
+
+    impl<'a> Solution<'a> for P2 {
+        type Input = Disk;
+
+        type Output = usize;
+
+        fn solve(mut disk: Self::Input) -> crate::harness::Result<Self::Output> {
+            move_files(&mut disk);
+            Ok(compute_checksum(&disk))
+        }
+    }
+
+    fn move_files(disk: &mut Disk) {
+        let mut file = disk.len() as isize - 1;
+
+        loop {
+            // find the next file to move
+            while file >= 0 && disk[file as usize].file_id.is_none() {
+                file -= 1;
+            }
+            if file < 0 {
+                // no remaining files, we're done
+                break;
+            }
+
+            // try to find a large-enough free block
+            let mut free: Option<isize> = None;
+            for i in 0..file {
+                if disk[i as usize].file_id.is_none()
+                    && disk[i as usize].size >= disk[file as usize].size
+                {
+                    free.replace(i);
+                    break;
+                }
+            }
+            if free.is_none() {
+                // no free block for this file, move to the next file
+                file -= 1;
+                continue;
+            }
+
+            let l = free.unwrap() as usize;
+            let r = file as usize;
+            let file_size = disk[r].size;
+            let free_size = disk[l].size;
+            assert!(l < r && free_size >= file_size);
+
+            disk[l] = disk[r];
+            disk[r].file_id.take();
+            if free_size > file_size {
+                disk.insert(
+                    l + 1,
+                    Block {
+                        file_id: None,
+                        size: free_size - file_size,
+                    },
+                );
+                file += 1;
+            }
+        }
+    }
+
+    fn compute_checksum(disk: &Disk) -> usize {
+        disk.iter()
+            .flat_map(|block| block.contents())
+            .enumerate()
+            .map(|(i, data)| match data {
+                Some(file_id) => i * file_id,
+                None => 0,
+            })
+            .sum()
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    pub struct Block {
+        file_id: Option<usize>,
+        size: usize,
+    }
+
+    impl Block {
+        pub fn contents(&self) -> Vec<Option<usize>> {
+            iter::repeat_n(self.file_id, self.size).collect()
+        }
+    }
+
+    type Disk = Vec<Block>;
+
+    impl<'a> SolutionInput<'a> for Disk {
+        fn read(mut reader: impl std::io::BufRead + 'a) -> input::Result<Self> {
+            let mut input = String::new();
+            reader.read_to_string(&mut input)?;
+            let mut disk = vec![];
+
+            for (i, c) in input.trim().char_indices() {
+                let size = c.to_digit(10).ok_or(InputError::InvalidInput {
+                    msg: format!("Non-digit char in input: '{}'", c),
+                    source: None,
+                })? as usize;
+
+                if size == 0 {
+                    continue;
+                }
+
+                disk.push(if i % 2 == 0 {
+                    Block {
+                        file_id: Some(i / 2),
+                        size,
+                    }
+                } else {
+                    Block {
+                        file_id: None,
+                        size,
+                    }
+                });
             }
 
             Ok(disk)
