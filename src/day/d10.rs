@@ -7,7 +7,7 @@ pub struct D10;
 impl Day for D10 {
     type P1<'a> = P1;
 
-    type P2<'a> = P1;
+    type P2<'a> = P2;
 
     fn day() -> u8 {
         10
@@ -16,6 +16,8 @@ impl Day for D10 {
 
 pub struct P1;
 
+pub struct P2;
+
 impl<'a> Solution<'a> for P1 {
     type Input = Map;
 
@@ -23,6 +25,16 @@ impl<'a> Solution<'a> for P1 {
 
     fn solve(map: Self::Input) -> crate::harness::Result<Self::Output> {
         Ok(map.trailheads.iter().map(|th| map.compute_score(th)).sum())
+    }
+}
+
+impl<'a> Solution<'a> for P2 {
+    type Input = Map;
+
+    type Output = usize;
+
+    fn solve(map: Self::Input) -> crate::harness::Result<Self::Output> {
+        Ok(map.trailheads.iter().map(|th| map.compute_rating(th)).sum())
     }
 }
 
@@ -66,6 +78,38 @@ impl Map {
             .iter()
             .filter(|(row, col)| self.tiles[*row][*col] == 9)
             .count()
+    }
+
+    pub fn compute_rating(&self, trailhead: &(usize, usize)) -> usize {
+        let mut stack: Vec<(usize, usize)> = vec![*trailhead];
+        let mut rating = 0;
+
+        while let Some((row, col)) = stack.pop() {
+            if self.tiles[row][col] == 9 {
+                rating += 1;
+            }
+
+            let mut neighbors = vec![];
+            if (row as isize) - 1 >= 0 {
+                neighbors.push((row - 1, col));
+            }
+            if row + 1 < self.rows() {
+                neighbors.push((row + 1, col));
+            }
+            if (col as isize) - 1 >= 0 {
+                neighbors.push((row, col - 1));
+            }
+            if col + 1 < self.cols() {
+                neighbors.push((row, col + 1));
+            }
+            stack.extend(
+                neighbors
+                    .iter()
+                    .filter(|(n_r, n_col)| self.tiles[*n_r][*n_col] == self.tiles[row][col] + 1),
+            );
+        }
+
+        rating
     }
 
     pub fn rows(&self) -> usize {
