@@ -1,6 +1,7 @@
 pub mod d1;
 pub mod d10;
 pub mod d11;
+pub mod d12;
 pub mod d2;
 pub mod d3;
 pub mod d4;
@@ -13,6 +14,7 @@ pub mod d9;
 pub use d1::D1;
 pub use d10::D10;
 pub use d11::D11;
+pub use d12::D12;
 pub use d2::D2;
 pub use d3::D3;
 pub use d4::D4;
