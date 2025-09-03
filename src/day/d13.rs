@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 
@@ -11,7 +13,7 @@ pub struct D13;
 impl Day for D13 {
     type P1<'a> = P1;
 
-    type P2<'a> = P1;
+    type P2<'a> = P2;
 
     fn day() -> u8 {
         13
@@ -47,21 +49,32 @@ fn min_tokens(machine: &Machine) -> u64 {
     0
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct SearchState {
-    position: (u64, u64),
-    tokens_spent: u64,
-    button_presses: u64,
+pub struct P2;
+
+impl<'a> Solution<'a> for P2 {
+    type Input = Box<dyn Inputs<Machine> + 'a>;
+
+    type Output = u64;
+
+    fn solve(machines: Self::Input) -> crate::harness::Result<Self::Output> {
+        machines.fold_solve(0, |tokens, machine| Ok(tokens + fast_min_tokens(&machine)))
+    }
 }
 
-impl Default for SearchState {
-    fn default() -> Self {
-        Self {
-            position: (0, 0),
-            tokens_spent: 0,
-            button_presses: 0,
-        }
-    }
+fn fast_min_tokens(_: &Machine) -> u64 {
+    // I tried a few things and couldn't get them working:
+    // 1) DFS w/ memoization - not fast enough
+    // 2) DP - couldn't figure out how to actually construct it. It reminded me
+    //    of the "make change" problem, but the subproblem space is so much
+    //    larger that I think you end up needing to do top-down DP (aka
+    //    memoization) which seemed to just end up being the DFS w/ memoization
+    //    approach.
+    // 3) Solving for variables via systems of equation approach. This is what
+    //    was suggested online. I did some pen and paper work and got A in terms
+    //    of B / B in terms of A, started coding it up, and just got a bit
+    //    frustrated with all the checking in rust for whether something divides
+    //    evenly or not.
+    todo!()
 }
 
 #[derive(Debug)]
