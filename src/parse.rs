@@ -22,3 +22,17 @@ pub fn parse_u64(s: &str) -> Result<u64, InputError> {
         source: Some(Box::new(error)),
     })
 }
+
+pub fn parse_usize(s: &str) -> Result<usize, InputError> {
+    usize::from_str(s).map_err(|error| InputError::InvalidInput {
+        msg: format!("Failed to parse {}", s),
+        source: Some(Box::new(error)),
+    })
+}
+
+pub fn parse_isize(s: &str) -> Result<isize, InputError> {
+    isize::from_str(s).map_err(|error| InputError::InvalidInput {
+        msg: format!("Failed to parse {}", s),
+        source: Some(Box::new(error)),
+    })
+}
